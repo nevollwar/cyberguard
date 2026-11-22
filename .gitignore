@@ -1,0 +1,55 @@
+# Python и кэш
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.Python
+build/
+dist/
+*.egg
+
+# Виртуальные окружения
+.venv/
+venv/
+env/
+ENV/
+
+# IDE и редакторы
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Переменные окружения и секреты (НИКОГДА не коммитить!)
+.env
+.env.local
+*.pem
+*.key
+
+# Локальные runtime-данные, БД и логи
+storage/
+*.db
+*.sqlite
+*.sqlite3
+*.log
+logs/
+
+# Крупные исходные датасеты и локальные результаты классификации
+data/raw/*.csv
+data/raw/*.txt
+data/results/*.csv
+!data/raw/.gitkeep
+!data/results/.gitkeep
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+
+# Тесты и отчёты покрытия
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Системные файлы ОС
+Thumbs.db
+Desktop.ini
+.DS_Store

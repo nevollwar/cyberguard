@@ -1,0 +1,5 @@
+﻿,Уникальных значений,Мода
+protocol_type,3,tcp
+service,70,http
+flag,11,SF
+labels,23,normal

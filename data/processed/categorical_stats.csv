@@ -1,5 +1,4 @@
-﻿,Уникальных значений,Мода
-protocol_type,3,tcp
-service,70,http
-flag,11,SF
-labels,23,normal
+﻿Признак,Уникальных в Train,Уникальных в Test,Самое частое (Train),Доля (%),Только в Train,Только в Test,Примеры только в Train,Примеры только в Test
+protocol_type,3,3,tcp,81.52,0,0,-,-
+service,70,66,http,32.02,4,0,"harvest, http_2784, http_8001, tftp_u",-
+flag,11,11,SF,59.49,0,0,-,-

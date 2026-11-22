@@ -1,0 +1,104 @@
+{
+  "logistic_regression": {
+    "model_id": "logistic_regression",
+    "display_name": "Logistic Regression",
+    "description": "Линейный классификатор (быстрая базовая модель, C=10.0)",
+    "is_default": false,
+    "supports_proba": true,
+    "model_path": "logistic_regression/model.joblib",
+    "file_size_mb": 0.0,
+    "params": {
+      "C": 10.0,
+      "max_iter": 2000,
+      "random_state": 42
+    },
+    "metrics_test": {
+      "accuracy": 0.9074,
+      "precision_attack": 0.9633,
+      "recall_attack": 0.8476,
+      "f1_attack": 0.9017,
+      "confusion_matrix": [
+        [
+          10880,
+          365
+        ],
+        [
+          1722,
+          9577
+        ]
+      ],
+      "predict_time_sec": 0.071
+    },
+    "train_time_sec": 10.46,
+    "trained_at": "2026-11-22 20:55:50"
+  },
+  "knn": {
+    "model_id": "knn",
+    "display_name": "K-Nearest Neighbors (KNN)",
+    "description": "Метод k ближайших соседей (высокая точность, n_neighbors=5)",
+    "is_default": false,
+    "supports_proba": true,
+    "model_path": "knn/model.joblib",
+    "file_size_mb": 8.17,
+    "params": {
+      "n_neighbors": 5
+    },
+    "metrics_test": {
+      "accuracy": 0.9312,
+      "precision_attack": 0.9899,
+      "recall_attack": 0.8718,
+      "f1_attack": 0.9271,
+      "confusion_matrix": [
+        [
+          11144,
+          101
+        ],
+        [
+          1449,
+          9850
+        ]
+      ],
+      "predict_time_sec": 8.632
+    },
+    "train_time_sec": 0.61,
+    "trained_at": "2026-11-22 20:56:01"
+  },
+  "mlp": {
+    "model_id": "mlp",
+    "display_name": "Multilayer Perceptron (MLP)",
+    "description": "Многослойный перцептрон (лучший Recall и F1 для атак)",
+    "is_default": true,
+    "supports_proba": true,
+    "model_path": "mlp/model.joblib",
+    "file_size_mb": 0.54,
+    "params": {
+      "hidden_layer_sizes": [
+        128,
+        64
+      ],
+      "max_iter": 40,
+      "early_stopping": true,
+      "n_iter_no_change": 5,
+      "random_state": 42
+    },
+    "metrics_test": {
+      "accuracy": 0.9395,
+      "precision_attack": 0.9902,
+      "recall_attack": 0.888,
+      "f1_attack": 0.9363,
+      "confusion_matrix": [
+        [
+          11146,
+          99
+        ],
+        [
+          1266,
+          10033
+        ]
+      ],
+      "predict_time_sec": 0.09
+    },
+    "train_time_sec": 77.54,
+    "trained_at": "2026-11-22 20:57:19"
+  }
+}

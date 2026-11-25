@@ -3,8 +3,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from dotenv import load_dotenv
 
-
-# Вычисляем корень проекта (на два уровня выше папки src/core)
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 
 
@@ -24,6 +22,7 @@ class AppConfig:
     api_access_token: str
     api_base_url: str
     telegram_bot_token: str
+    telegram_proxy_url: str
     telegram_allowed_user_ids: list[int]
 
 
@@ -44,7 +43,6 @@ def _parse_user_ids(raw_ids: str) -> list[int]:
 
 
 def load_config() -> AppConfig:
-    # Подгружаем переменные из .env в корне проекта (если файла нет, сработают значения по умолчанию)
     env_path = PROJECT_ROOT / '.env'
     load_dotenv(dotenv_path=env_path)
 
@@ -65,15 +63,15 @@ def load_config() -> AppConfig:
         logs_dir=logs_dir,
         api_host=os.getenv('API_HOST', '127.0.0.1'),
         api_port=int(os.getenv('API_PORT', '8000')),
-        api_access_token=os.getenv('API_ACCESS_TOKEN', ''),
+        api_access_token=os.getenv('API_ACCESS_TOKEN', 'cyberguard-secret-token-2026'),
         api_base_url=os.getenv('API_BASE_URL', 'http://127.0.0.1:8000'),
         telegram_bot_token=os.getenv('TELEGRAM_BOT_TOKEN', ''),
+        telegram_proxy_url=os.getenv('TELEGRAM_PROXY_URL', '').strip(),
         telegram_allowed_user_ids=_parse_user_ids(os.getenv('TELEGRAM_ALLOWED_USER_IDS', '')),
     )
 
 
 def ensure_runtime_dirs(config: AppConfig) -> None:
-    # Создаём рабочие папки для БД, логов и сохранённых результатов, если их ещё нет
     config.sqlite_db_path.parent.mkdir(parents=True, exist_ok=True)
     config.logs_dir.mkdir(parents=True, exist_ok=True)
     config.data_results_dir.mkdir(parents=True, exist_ok=True)

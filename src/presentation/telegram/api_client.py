@@ -32,8 +32,8 @@ async def set_active_model(model_id: str) -> dict:
         return res.json()
 
 
-async def run_predict(dataset_name: str, limit: int = 100) -> dict:
-    async with get_client(timeout=60.0) as client:
+async def run_predict(dataset_name: str, limit: int | None = 100) -> dict:
+    async with get_client(timeout=120.0) as client:
         res = await client.post(
             f'{BASE_URL}/predict/dataset',
             json={'dataset_name': dataset_name, 'limit': limit},

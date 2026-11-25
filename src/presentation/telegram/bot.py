@@ -17,7 +17,6 @@ dp = Dispatcher()
 
 
 def is_user_allowed(user_id: int) -> bool:
-    # Если список пуст — доступ открыт для всех (удобно для тестов)
     if not config.telegram_allowed_user_ids:
         return True
     return user_id in config.telegram_allowed_user_ids
@@ -26,8 +25,8 @@ def is_user_allowed(user_id: int) -> bool:
 def get_main_keyboard() -> ReplyKeyboardMarkup:
     kb = [
         [KeyboardButton(text='📊 Статус системы'), KeyboardButton(text='🤖 Список моделей')],
-        [KeyboardButton(text='⚡ Классификация (kdd_test.csv)')],
-        [KeyboardButton(text='📜 История')],
+        [KeyboardButton(text='⚡ Классификация трафика')],
+        [KeyboardButton(text='📜 История запусков')],
     ]
     return ReplyKeyboardMarkup(keyboard=kb, resize_keyboard=True)
 
@@ -35,12 +34,15 @@ def get_main_keyboard() -> ReplyKeyboardMarkup:
 @dp.message(Command('start'))
 async def cmd_start(message: Message):
     if not is_user_allowed(message.from_user.id):
-        await message.answer(f'⛔ Доступ запрещён. Ваш Telegram ID: <code>{message.from_user.id}</code>', parse_mode='HTML')
+        await message.answer(
+            f'⛔ Доступ запрещён. Ваш Telegram ID: <code>{message.from_user.id}</code>',
+            parse_mode='HTML',
+        )
         return
 
     text = (
         '🛡️ <b>Добро пожаловать в CyberGuard Bot!</b>\n\n'
-        'Система защищённой классификации сетевого трафика NSL-KDD.\n'
+        'Система классификации сетевого трафика NSL-KDD.\n'
         'Используйте меню ниже для управления моделями и запуска анализа.'
     )
     await message.answer(text, reply_markup=get_main_keyboard(), parse_mode='HTML')
@@ -89,7 +91,9 @@ async def cmd_models(message: Message):
                 f'F1: <code>{m["metrics"].get("f1_attack", "N/A")}</code>\n\n'
             )
             btn_text = f'Выбрать {m["display_name"]}'
-            kb_buttons.append([InlineKeyboardButton(text=btn_text, callback_data=f'set_model:{m["model_id"]}')])
+            kb_buttons.append(
+                [InlineKeyboardButton(text=btn_text, callback_data=f'set_model:{m["model_id"]}')]
+            )
 
         inline_kb = InlineKeyboardMarkup(inline_keyboard=kb_buttons)
         await message.answer(text, reply_markup=inline_kb, parse_mode='HTML')
@@ -107,35 +111,109 @@ async def cb_set_model(query: CallbackQuery):
     try:
         await api_client.set_active_model(model_id)
         await query.answer(f'Модель переключена на {model_id}!')
-        await query.message.edit_text(f'✅ Активная модель успешно изменена на: <b>{model_id}</b>', parse_mode='HTML')
+        await query.message.edit_text(
+            f'✅ Активная модель успешно изменена на: <b>{model_id}</b>', parse_mode='HTML'
+        )
     except Exception as exc:
         await query.answer(f'Ошибка: {exc}', show_alert=True)
 
 
-@dp.message(F.text == '⚡ Классификация (kdd_test.csv)')
+# --- Пошаговая классификация с выбором файла и лимита ---
+
+
+@dp.message(F.text == '⚡ Классификация трафика')
 @dp.message(Command('predict'))
-async def cmd_predict(message: Message):
+async def cmd_predict_start(message: Message):
     if not is_user_allowed(message.from_user.id):
         return
 
-    wait_msg = await message.answer('⏳ Выполняется классификация тестовой выборки (100 строк)...')
+    # Шаг 1: выбор датасета
+    kb = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text='kdd_test.csv (Боевой тест)', callback_data='choose_ds:kdd_test.csv'
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    text='kdd_train.csv (Обучающий)', callback_data='choose_ds:kdd_train.csv'
+                )
+            ],
+        ]
+    )
+    await message.answer('📁 <b>Выберите датасет для анализа:</b>', reply_markup=kb, parse_mode='HTML')
+
+
+@dp.callback_query(F.data.startswith('choose_ds:'))
+async def cb_choose_dataset(query: CallbackQuery):
+    if not is_user_allowed(query.from_user.id):
+        return
+
+    dataset_name = query.data.split(':')[1]
+
+    # Шаг 2: выбор объёма строк
+    kb = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text='⚡ 100 строк', callback_data=f'run_pred:{dataset_name}:100'
+                ),
+                InlineKeyboardButton(
+                    text='📊 1 000 строк', callback_data=f'run_pred:{dataset_name}:1000'
+                ),
+            ],
+            [
+                InlineKeyboardButton(
+                    text='📈 5 000 строк', callback_data=f'run_pred:{dataset_name}:5000'
+                ),
+                InlineKeyboardButton(
+                    text='🔥 Весь датасет', callback_data=f'run_pred:{dataset_name}:all'
+                ),
+            ],
+        ]
+    )
+    await query.message.edit_text(
+        f'📁 Выбран датасет: <code>{dataset_name}</code>\n\n'
+        f'🔢 <b>Выберите количество записей для классификации:</b>',
+        reply_markup=kb,
+        parse_mode='HTML',
+    )
+
+
+@dp.callback_query(F.data.startswith('run_pred:'))
+async def cb_run_prediction(query: CallbackQuery):
+    if not is_user_allowed(query.from_user.id):
+        return
+
+    _, dataset_name, limit_str = query.data.split(':')
+    limit = None if limit_str == 'all' else int(limit_str)
+    limit_display = 'весь файл целиком' if limit is None else f'{limit} записей'
+
+    await query.message.edit_text(
+        f'⏳ <b>Выполняется классификация...</b>\n'
+        f'• Датасет: <code>{dataset_name}</code>\n'
+        f'• Объём: <b>{limit_display}</b>\n\n'
+        f'<i>Пожалуйста, подождите, идёт обработка данных моделью.</i>',
+        parse_mode='HTML',
+    )
+
     try:
-        res = await api_client.run_predict(dataset_name='kdd_test.csv', limit=100)
+        res = await api_client.run_predict(dataset_name=dataset_name, limit=limit)
         text = (
-            '⚡ <b>Результаты классификации NSL-KDD:</b>\n\n'
+            '⚡ <b>Результаты классификации трафика:</b>\n\n'
             f'• Модель: <b>{res["model_name"]}</b>\n'
             f'• Выборка: <code>{res["source_name"]}</code>\n'
-            f'• Всего записей: <b>{res["total_count"]}</b>\n'
-            f'• Норма: <b>{res["normal_count"]}</b> ({res["normal_percent"]}%)\n'
-            f'• Атаки: <b>{res["attack_count"]}</b> ({res["attack_percent"]}%)'
+            f'• Всего обработано: <b>{res["total_count"]}</b>\n\n'
+            f'🟢 <b>Нормальный трафик:</b> {res["normal_count"]} ({res["normal_percent"]}%)\n'
+            f'🔴 <b>Обнаружено атак:</b> {res["attack_count"]} ({res["attack_percent"]}%)'
         )
-        await wait_msg.delete()
-        await message.answer(text, parse_mode='HTML')
+        await query.message.edit_text(text, parse_mode='HTML')
     except Exception as exc:
-        await wait_msg.edit_text(f'❌ Ошибка при классификации: {exc}')
+        await query.message.edit_text(f'❌ Ошибка классификации: {exc}')
 
 
-@dp.message(F.text == '📜 История')
+@dp.message(F.text == '📜 История запусков')
 @dp.message(Command('history'))
 async def cmd_history(message: Message):
     if not is_user_allowed(message.from_user.id):
@@ -151,6 +229,7 @@ async def cmd_history(message: Message):
         for r in records:
             text += (
                 f'🗓 <code>{r.get("created_at")}</code>\n'
+                f'• Источник: <code>{r.get("source_name")}</code>\n'
                 f'• Модель: {r.get("model_name")}\n'
                 f'• Всего: {r.get("total_count")} | Атаки: <b>{r.get("attack_percent")}%</b>\n\n'
             )

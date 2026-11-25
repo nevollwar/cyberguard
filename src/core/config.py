@@ -46,6 +46,10 @@ def load_config() -> AppConfig:
     env_path = PROJECT_ROOT / '.env'
     load_dotenv(dotenv_path=env_path)
 
+    api_token = os.getenv('API_ACCESS_TOKEN', '').strip()
+    if not api_token and os.getenv('APP_ENV', 'development') == 'production':
+        raise ValueError('Критическая ошибка: в生产 (production) режиме не задан API_ACCESS_TOKEN в файле .env!')
+
     models_dir = _resolve_path(os.getenv('MODELS_DIR', 'models'), PROJECT_ROOT)
     sqlite_db_path = _resolve_path(os.getenv('SQLITE_DB_PATH', 'storage/cyberguard.db'), PROJECT_ROOT)
     data_results_dir = _resolve_path(os.getenv('DATA_RESULTS_DIR', 'data/results'), PROJECT_ROOT)
@@ -63,7 +67,7 @@ def load_config() -> AppConfig:
         logs_dir=logs_dir,
         api_host=os.getenv('API_HOST', '127.0.0.1'),
         api_port=int(os.getenv('API_PORT', '8000')),
-        api_access_token=os.getenv('API_ACCESS_TOKEN', 'cyberguard-secret-token-2026'),
+        api_access_token=api_token or 'dev-fallback-token-change-in-prod',
         api_base_url=os.getenv('API_BASE_URL', 'http://127.0.0.1:8000'),
         telegram_bot_token=os.getenv('TELEGRAM_BOT_TOKEN', ''),
         telegram_proxy_url=os.getenv('TELEGRAM_PROXY_URL', '').strip(),

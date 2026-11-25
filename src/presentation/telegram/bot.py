@@ -11,9 +11,14 @@ from aiogram.types import (
 
 from src.core.config import load_config
 from src.presentation.telegram import api_client
+from src.presentation.telegram.middlewares.auth_middleware import AuthMiddleware
 
 config = load_config()
 dp = Dispatcher()
+
+# Регистрируем проверку белого списка для всех входящих событий
+dp.message.middleware(AuthMiddleware())
+dp.callback_query.middleware(AuthMiddleware())
 
 
 def is_user_allowed(user_id: int) -> bool:
@@ -25,7 +30,7 @@ def is_user_allowed(user_id: int) -> bool:
 def get_main_keyboard() -> ReplyKeyboardMarkup:
     kb = [
         [KeyboardButton(text='📊 Статус системы'), KeyboardButton(text='🤖 Список моделей')],
-        [KeyboardButton(text='⚡ Классификация трафика')],
+        [KeyboardButton(text='⚡ Классификация (kdd_test.csv)')],
         [KeyboardButton(text='📜 История запусков')],
     ]
     return ReplyKeyboardMarkup(keyboard=kb, resize_keyboard=True)
@@ -118,10 +123,10 @@ async def cb_set_model(query: CallbackQuery):
         await query.answer(f'Ошибка: {exc}', show_alert=True)
 
 
-# --- Пошаговая классификация с выбором файла и лимита ---
+# --- Пошаговая классификация по кнопке и команде /predict ---
 
 
-@dp.message(F.text == '⚡ Классификация трафика')
+@dp.message(F.text == '⚡ Классификация (kdd_test.csv)')
 @dp.message(Command('predict'))
 async def cmd_predict_start(message: Message):
     if not is_user_allowed(message.from_user.id):
@@ -204,9 +209,9 @@ async def cb_run_prediction(query: CallbackQuery):
             '⚡ <b>Результаты классификации трафика:</b>\n\n'
             f'• Модель: <b>{res["model_name"]}</b>\n'
             f'• Выборка: <code>{res["source_name"]}</code>\n'
-            f'• Всего обработано: <b>{res["total_count"]}</b>\n\n'
-            f'🟢 <b>Нормальный трафик:</b> {res["normal_count"]} ({res["normal_percent"]}%)\n'
-            f'🔴 <b>Обнаружено атак:</b> {res["attack_count"]} ({res["attack_percent"]}%)'
+            f'• Всего обработано: <b>{res["total_count"]:,}</b>\n\n'
+            f'🟢 <b>Нормальный трафик:</b> {res["normal_count"]:,} ({res["normal_percent"]}%)\n'
+            f'🔴 <b>Обнаружено атак:</b> {res["attack_count"]:,} ({res["attack_percent"]}%)'
         )
         await query.message.edit_text(text, parse_mode='HTML')
     except Exception as exc:

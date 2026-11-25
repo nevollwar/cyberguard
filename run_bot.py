@@ -3,6 +3,7 @@ from aiogram import Bot
 from aiogram.client.session.aiohttp import AiohttpSession
 from src.core.config import load_config
 from src.core.logger import get_logger
+from src.presentation.telegram.api_client import close_async_client
 from src.presentation.telegram.bot import dp
 
 
@@ -17,6 +18,7 @@ async def main():
 
     logger.info('Запуск Telegram-бота CyberGuard...')
 
+    # Настраиваем сессию (если задан прокси в .env, используем его, иначе стандартное подключение)
     session = None
     if config.telegram_proxy_url:
         logger.info(f'Использование прокси для Telegram: {config.telegram_proxy_url}')
@@ -29,6 +31,8 @@ async def main():
         await dp.start_polling(bot)
     finally:
         await bot.session.close()
+        await close_async_client()
+        logger.info('HTTP-клиент и сессия бота успешно закрыты.')
 
 
 if __name__ == '__main__':

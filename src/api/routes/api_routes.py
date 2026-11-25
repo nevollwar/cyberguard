@@ -79,6 +79,7 @@ def predict_dataset(req: PredictDatasetRequest):
         raise HTTPException(status_code=404, detail=f'Файл {req.dataset_name} не найден на сервере.')
 
     try:
+        # Если req.limit == None, read_csv прочитает весь файл целиком
         df = pd.read_csv(file_path, nrows=req.limit)
         result = classify_dataframe(
             df, model_id=req.model_id, source_name=f'{req.dataset_name} (API)'
@@ -96,6 +97,9 @@ def predict_dataset(req: PredictDatasetRequest):
             attack_percent=result.attack_percent,
         )
     except Exception as exc:
+        # Выведи точный трейсбек в консоль сервера для отладки
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f'Ошибка классификации: {exc}')
 
 
